@@ -1,16 +1,17 @@
 import gzip
 import pandas as pd
 import os
+import glob
 
-# barcode_assignments = {'ACAAGT': '130',
-#                        'AAGCAA': '131',
-#                        'TCCTGT': '145',
-#                        'TGGTCC': '133',
-#                        'ATGACC': '142',
-#                        'CAGCTT': '143',
-#                        'GGATAC': '144',
-#                        'GGCTTG': '132',
-#                        'other': 'other'}
+my_barcode_assignments = {'ACAAGT': '130',
+                       'AAGCAA': '131',
+                       'TCCTGT': '145',
+                       'TGGTCC': '133',
+                       'ATGACC': '142',
+                       'CAGCTT': '143',
+                       'GGATAC': '144',
+                       'GGCTTG': '132',
+                       'other': 'other'}
 
 my_barcodes = ['ACAAGT', 'AAGCAA', 'TCCTGT', 'TGGTCC',
             'ATGACC', 'CAGCTT', 'GGATAC', 'GGCTTG', 'other']
@@ -71,7 +72,7 @@ def trim_read_from_barcode(read, barcodes):
     return assigned, read
 
 
-def demux_fastq(fastq, barcodes, barcode_counter, output_dir):
+def demux_fastq(fastq, output_dir, barcodes=my_barcodes, barcode_counter=my_barcode_counts):
     """
 
     :param fastq:
@@ -119,10 +120,10 @@ def demux_fastq(fastq, barcodes, barcode_counter, output_dir):
 def format_and_save_barcode_counter(barcode_counter, output_dir, fastq):
     """
 
-    :param barcode_counter:
-    :param output_dir:
-    :param fastq:
-    :return:
+    :param barcode_counter: result of demux_fastq
+    :param output_dir: save directory
+    :param fastq: fastq file to demux (gzipped)
+    :return:saves barcode metrics file in output directory
     """
     sample_name = get_sample_id(fastq)
     df = pd.DataFrame.from_dict(barcode_counter, orient='index')
@@ -130,9 +131,34 @@ def format_and_save_barcode_counter(barcode_counter, output_dir, fastq):
     df.to_csv(output_dir+sample_name+"_barcode_metrics.csv")
 
 
-def master(fastq_files, my_barcodes, my_barcode_counter, output_dir):
+def summarize_metrics(output_dir, barcode_assignments=my_barcode_assignments):
+    """
+    combines all metrics file into one dataframe
+    :param output_dir: directory where metrics files are being saved
+    :param barcode_assignments: name with barcode string
+    :return: saves new dataframe
+    """
+
+    files = glob.glob(output_dir+"*_metrics.csv")
+    dfs = []
+
+    for sample in files:
+        name = os.path.basename(sample).split("_")[0]
+        df = pd.read_csv(sample, index_col=0)
+        df.rename(columns = {"count": name}, inplace=True)
+        dfs.append(df)
+
+    result = pd.concat(dfs, axis=1)
+    result.reset_index(inplace=True)
+    result['barcode_name'] = result['index'].map(barcode_assignments)
+    result.set_index('index', inplace=True)
+    result.to_csv(output_dir+"all_metrics_summary.csv")
+
+
+def master(fastq_files, output_dir, barcodes=my_barcodes, barcode_counter=my_barcode_counts):
     for fastq in fastq_files:
-        barcode_counter = demux_fastq(fastq, my_barcodes, my_barcode_counter, output_dir)
+        barcode_counter = demux_fastq(fastq, output_dir, barcodes, barcode_counter)
         format_and_save_barcode_counter(barcode_counter, output_dir, fastq)
+    summarize_metrics(output_dir)
 
 
