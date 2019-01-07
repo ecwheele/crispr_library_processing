@@ -1,7 +1,9 @@
 from collections import Counter
 import numpy as np
+import os
+import pandas as pd
 
-after_guide = 'gttttagagctaGAAAtagcaagttaaaataa'.upper()
+after_guide = 'gttttagagctaGAAAtagcaagtt'.upper()
 before_guide = 'TTCTTGTGGAAAGGACGAAACACCG'
 
 
@@ -76,23 +78,52 @@ def assign_guides(gRNA_counts):
 
 
 def make_summary_df(read_count, good_read_count, to_keep, demuxed_fastq):
+    rows = []
     name = os.path.basename(demuxed_fastq).split("_")[0]
     index = os.path.basename(demuxed_fastq).split("_")[1].rstrip(".fastq")
-    rows = [name, index, 'total_reads', read_count]
-    rows.append([name, index, 'reads_with_guide', good_read_count])
-
+    row_1 = [name, index, 'total_reads', read_count]
+    row_2 = [name, index, 'reads_with_guide', good_read_count]
+    rows.append(row_1)
+    rows.append(row_2)
 
     if len(to_keep) > 0:
         for item in to_keep.keys():
             row = [name, index, item, to_keep[item]]
             rows.append(row)
 
-    df = pd.DataFrame(rows, orient='index')
+    df = pd.DataFrame(rows)
 
     return df
 
 
-def process_one_sample(sam)
+def process_all_samples(sample_manifest, demux_dir, front_seq=before_guide, back_seq=after_guide):
+    """
+    Processes all libraries to call gRNAs
+    :param sample_manifest:
+    :param demux_dir:
+    :param front_seq:
+    :param back_seq:
+    :return:
+    """
+
+    manifest_df = pd.read_table(sample_manifest)
+
+    dfs = []
+
+    for library in manifest_df.iterrows():
+        lib = library[1]['Sample']
+        indices = library[1]['Index'].split(",")
+        for index in indices:
+            fastq = demux_dir+"{}_{}.fastq".format(lib, index)
+            gRNA_counts, read_count, reads_with_guide = count_guides(fastq, front_seq=front_seq, back_seq=back_seq)
+            to_keep = assign_guides(gRNA_counts)
+            df = make_summary_df(read_count, reads_with_guide, to_keep, fastq)
+            dfs.append(df)
+
+    summary = pd.concat(dfs)
+    summary.columns = ['library', 'index', 'type', 'read_count']
+
+    return summary
 
 
 
