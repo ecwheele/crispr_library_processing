@@ -72,7 +72,11 @@ def trim_read_from_barcode(read, barcodes):
     return assigned, read
 
 
-def demux_fastq(fastq, output_dir, barcodes=my_barcodes, barcode_counter=my_barcode_counts):
+def demux_fastq(fastq, output_dir, barcodes=my_barcodes):
+
+    barcode_counter = {'other':0, 'ACAAGT':0, 'AAGCAA':0, 'GGCTTG':0, 'TGGTCC':0,
+                   'ATGACC':0, 'CAGCTT':0, 'GGATAC':0, 'TCCTGT':0}
+
     """
 
     :param fastq:
@@ -83,7 +87,6 @@ def demux_fastq(fastq, output_dir, barcodes=my_barcodes, barcode_counter=my_barc
     """
     sample_name = get_sample_id(fastq)
     write_files = {}
-    new_counter = barcode_counter
 
     for barcode in barcodes:
         file = output_dir+sample_name+"_"+barcode+".fastq"
@@ -100,7 +103,7 @@ def demux_fastq(fastq, output_dir, barcodes=my_barcodes, barcode_counter=my_barc
                 quality = fastq_file.next()
 
                 index, short_read = trim_read_from_barcode(seq, barcodes)
-                new_counter[index] += 1
+                barcode_counter[index] += 1
 
                 if index != 'other':
                     quality = quality[6:]
@@ -115,7 +118,7 @@ def demux_fastq(fastq, output_dir, barcodes=my_barcodes, barcode_counter=my_barc
     for barcode in barcodes:
         write_files[barcode].close()
 
-    return new_counter
+    return barcode_counter
 
 
 def format_and_save_barcode_counter(barcode_counts, output_dir, fastq):
