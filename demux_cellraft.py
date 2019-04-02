@@ -83,6 +83,7 @@ def demux_fastq(fastq, output_dir, barcodes=my_barcodes, barcode_counter=my_barc
     """
     sample_name = get_sample_id(fastq)
     write_files = {}
+    new_counter = barcode_counter
 
     for barcode in barcodes:
         file = output_dir+sample_name+"_"+barcode+".fastq"
@@ -99,7 +100,7 @@ def demux_fastq(fastq, output_dir, barcodes=my_barcodes, barcode_counter=my_barc
                 quality = fastq_file.next()
 
                 index, short_read = trim_read_from_barcode(seq, barcodes)
-                barcode_counter[index] += 1
+                new_counter[index] += 1
 
                 if index != 'other':
                     quality = quality[6:]
@@ -114,10 +115,10 @@ def demux_fastq(fastq, output_dir, barcodes=my_barcodes, barcode_counter=my_barc
     for barcode in barcodes:
         write_files[barcode].close()
 
-    return barcode_counter
+    return new_counter
 
 
-def format_and_save_barcode_counter(barcode_counter, output_dir, fastq):
+def format_and_save_barcode_counter(barcode_counts, output_dir, fastq):
     """
 
     :param barcode_counter: result of demux_fastq
@@ -126,7 +127,7 @@ def format_and_save_barcode_counter(barcode_counter, output_dir, fastq):
     :return:saves barcode metrics file in output directory
     """
     sample_name = get_sample_id(fastq)
-    df = pd.DataFrame.from_dict(barcode_counter, orient='index')
+    df = pd.DataFrame.from_dict(barcode_counts, orient='index')
     df.rename(columns={0: "count"}, inplace=True)
     df.to_csv(output_dir+sample_name+"_barcode_metrics.csv")
 
