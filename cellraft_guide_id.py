@@ -65,7 +65,7 @@ def count_guides(sample_fastq, front_seq=before_guide, back_seq=after_guide):
 
 def assign_guides(gRNA_counts):
 
-    cutoff = np.mean(gRNA_counts.values())*10
+    cutoff = np.mean(gRNA_counts.values())*5
 
     to_keep = dict()
 
