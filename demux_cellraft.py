@@ -157,8 +157,8 @@ def summarize_metrics(output_dir, barcode_assignments=my_barcode_assignments):
 
 def master(fastq_files, output_dir, barcodes=my_barcodes, barcode_counter=my_barcode_counts):
     for fastq in fastq_files:
-        barcode_counter = demux_fastq(fastq, output_dir, barcodes, barcode_counter)
-        format_and_save_barcode_counter(barcode_counter, output_dir, fastq)
+        counter_new = demux_fastq(fastq, output_dir, barcodes, barcode_counter)
+        format_and_save_barcode_counter(counter_new, output_dir, fastq)
     summarize_metrics(output_dir)
 
 
